@@ -1,0 +1,191 @@
+<!DOCTYPE html>  
+<html>  
+<head>  
+  <meta charset="UTF-8">  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+  <script src="https://d3js.org/d3.v7.min.js"></script>  
+  <script src="https://cdn.tailwindcss.com"></script>  
+  <title>Singapore District Atlas</title>  
+  <style>  
+    body {  
+      background: linear-gradient(135deg, #4a90e2, #50e3c2, #4a90e2); /* Updated background gradient */  
+      margin: 0;  
+      min-height: 100vh;  
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;  
+    }  
+    
+    .glass-effect {  
+      background: rgba(255, 235, 225, 0.03);  
+      backdrop-filter: blur(8px);  
+      border: 1px solid rgba(255, 160, 122, 0.2);  
+    }  
+    
+    .map-container {  
+      border-radius: 20px;  
+      padding: 20px;  
+      margin: 20px;  
+      transition: all 0.3s ease;  
+    }  
+    
+    .map-title {  
+      background: linear-gradient(45deg, #ff6b4a, #ffa07a);  
+      -webkit-background-clip: text;  
+      background-clip: text;  
+      color: transparent;  
+      text-align: center;  
+      font-size: 2rem;  
+      margin: 20px auto;  
+      width: 400px;  
+      position: relative;  
+      left: 50%;  
+      transform: translateX(-50%);  
+      text-shadow: 0 0 30px rgba(255, 107, 74, 0.3);  
+      z-index: 1000;  
+    }  
+    
+    #tooltip {  
+      position: absolute;  
+      background: rgba(26, 28, 44, 0.95);  
+      color: #fff;  
+      border-radius: 12px;  
+      padding: 15px;  
+      display: none;  
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);  
+      border: 1px solid rgba(255, 160, 122, 0.2);  
+      font-size: 0.9rem;  
+      max-width: 200px;  
+    }  
+    
+    .control-button {  
+      background: linear-gradient(45deg, #ff6b4a, #ffa07a);  
+      border: none;  
+      color: white;  
+      padding: 10px 20px;  
+      border-radius: 10px;  
+      cursor: pointer;  
+      transition: all 0.3s ease;  
+      font-weight: 500;  
+    }  
+    
+    .control-button:hover {  
+      transform: translateY(-2px);  
+      box-shadow: 0 4px 15px rgba(255, 107, 74, 0.3);  
+    }  
+    
+    .control-panel {  
+      position: fixed;  
+      top: 20px;  
+      left: 20px;  
+      background: rgba(26, 28, 44, 0.9);  
+      padding: 20px;  
+      border-radius: 15px;  
+      border: 1px solid rgba(255, 160, 122, 0.2);  
+      backdrop-filter: blur(8px);  
+      z-index: 1000;  
+    }  
+    
+    .search-input {  
+      background: rgba(255, 255, 255, 0.05);  
+      border: 1px solid rgba(255, 160, 122, 0.2);  
+      color: #ffdcd1;  
+      padding: 10px;  
+      border-radius: 10px;  
+      width: 200px;  
+      margin-right: 10px;  
+      transition: all 0.3s ease;  
+    }  
+    
+    .search-input:focus {  
+      outline: none;  
+      border-color: #ff6b4a;  
+      box-shadow: 0 0 10px rgba(255, 107, 74, 0.2);  
+    }  
+    
+    #legend {  
+      position: fixed;  
+      bottom: 20px;  
+      right: 20px;  
+      background: rgba(26, 28, 44, 0.9);  
+      padding: 20px;  
+      border-radius: 15px;  
+      color: #ffdcd1;  
+      border: 1px solid rgba(255, 160, 122, 0.2);  
+      backdrop-filter: blur(8px);  
+    }  
+    
+    .district-path {  
+      transition: all 0.3s ease;  
+    }  
+    
+    .district-path:hover {  
+      filter: brightness(1.2);  
+    }  
+
+    .stats-panel {  
+      position: fixed;  
+      top: 20px;  
+      right: 20px;  
+      background: rgba(26, 28, 44, 0.9);  
+      padding: 20px;  
+      border-radius: 15px;  
+      color: #ffdcd1;  
+      border: 1px solid rgba(255, 160, 122, 0.2);  
+      backdrop-filter: blur(8px);  
+      z-index: 1000;  
+    }  
+
+    @keyframes pulse {  
+      0% { transform: scale(1); }  
+      50% { transform: scale(1.05); }  
+      100% { transform: scale(1); }  
+    }  
+
+    .highlight {  
+      animation: pulse 1s ease-in-out;  
+    }  
+  </style>  
+</head>  
+<body>  
+  <h1 class="map-title">Singapore District Atlas</h1>  
+  
+  <div class="control-panel">  
+    <div class="mb-4">  
+      <input id="search-input" class="search-input" type="text" placeholder="Search district...">  
+      <button id="search-btn" class="control-button">Search</button>  
+    </div>  
+    <div class="flex gap-2">  
+      <button id="zoom-in" class="control-button">+</button>  
+      <button id="zoom-out" class="control-button">-</button>  
+      <button id="reset-btn" class="control-button">Reset</button>  
+    </div>  
+  </div>  
+  
+  <div class="stats-panel">  
+    <h3 class="text-lg font-bold mb-2">Statistics</h3>  
+    <div id="stats-content">  
+      <p>Total Districts: <span id="total-districts">323</span></p>  
+      <p>Total Population: <span id="total-population">4,147,660</span></p>  
+      <p>Avg Population: <span id="avg-population">12,841</span></p>  
+    </div>  
+  </div>  
+  
+  <div class="map-container glass-effect">  
+    <svg width="1000" height="600"></svg>  
+  </div>  
+  
+  <div id="tooltip"></div>  
+  
+  <div id="legend">  
+    <strong class="block mb-2">POPULATION DENSITY</strong>  
+    <svg width="180" height="20"></svg>  
+    <div class="flex justify-between mt-2">  
+      <span>0</span>  
+      <span id="max-value">0</span>  
+    </div>  
+  </div>  
+
+  <script>  
+    // Existing JavaScript code  
+  </script>  
+</body>  
+</html>
